@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ title }}</title>
+</head>
+<body>
+
+<h1>{{ title }}</h1>
+<p>{{ content }}</p>
+
+<hr>
+
+{% if is_home %}
+    <a href="/page1/">Сторінка 1</a><br>
+    <a href="/page2/">Сторінка 2</a><br>
+{% else %}
+    <a href="/">На головну</a>
+{% endif %}
+
+</body>
+</html>
