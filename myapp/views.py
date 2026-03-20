@@ -1,12 +1,15 @@
-
+import random
 
 from django.shortcuts import render
-
+my_var=0
 def home(request):
+    global my_var
+    my_var+=1
     context = {
         "title": "Головна сторінка",
         "content": "Це головна сторінка сайту",
-        "is_home": True
+        "is_home": True,
+        "r":my_var
     }
     return render(request, "page.html", context)
 
