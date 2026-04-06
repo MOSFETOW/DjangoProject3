@@ -1,15 +1,17 @@
-import random
 
 from django.shortcuts import render
-my_var=0
+from .models import Product,Category
+from django.shortcuts import render
+
 def home(request):
-    global my_var
-    my_var+=1
+    products = Product.objects.all()
+    categories = Category.objects.all()
     context = {
         "title": "Головна сторінка",
         "content": "Це головна сторінка сайту",
         "is_home": True,
-        "r":my_var
+        'products': products,
+        'categories': categories,
     }
     return render(request, "page.html", context)
 
