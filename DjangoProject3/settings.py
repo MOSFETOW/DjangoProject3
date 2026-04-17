@@ -118,7 +118,7 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/6.0/howto/static-files/
+# Static files (CSS, JavaScript, Images)  aqzz tcah kwik tsgt
+# https://docs.djangoproject.com/en/6.0/howto/static-files/ aqzz tcah kwik tsgt
 
 STATIC_URL = 'static/'

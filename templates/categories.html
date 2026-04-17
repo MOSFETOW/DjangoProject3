@@ -24,7 +24,7 @@
 
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            Категорії
+            {{ category.name }}
           </a>
           <ul class="dropdown-menu">
               <li><a class="dropdown-item" href="/">Все</a></li>
@@ -35,7 +35,7 @@
 
         {% if category.name %}
 
-            <li><a class="dropdown-item" href="category/{{category.slug}}">{{category.name}}</a></li>
+            <li><a class="dropdown-item" href="/category/{{category.slug}}">{{category.name}}</a></li>
 
         {% endif %}
 
@@ -62,16 +62,20 @@
     <div class="row">
       {% for product in products %}
         {% if product.image %}
+
            <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
             <div class="card h-100">
-              <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}">
-              <div class="card-body d-flex flex-column">
+                <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}">
+
+                <div class="card-body d-flex flex-column">
                 <h5 class="card-title">{{ product.name}}</h5>
                 <p class="card-text flex-grow-1">         {{ product.price}} грн</p>
-                        <a href="/category/{{ product.category.slug}}/{{ product.slug}}" class="btn btn-primary mt-auto stretched-link">переглянути</a>
+                <a href="/category/{{ product.category.slug}}/{{ product.slug}}" class="btn btn-primary mt-auto stretched-link">переглянути</a>
               </div>
+
             </div>
           </div>
+
         {% endif %}
       {% endfor %}
     </div>

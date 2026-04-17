@@ -4,12 +4,13 @@ from .models import Category, Product, Order
 
 @admin.register(Category)
 class CategoryAdmin(admin.ModelAdmin):
-    list_display = ('name', 'created_at', 'updated_at')
+    list_display = ('name', 'created_at', 'updated_at',"slug")
 
 
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
-    list_display = ('name', 'price', 'category', 'created_at', 'updated_at')
+    list_display = ('name', 'price', 'category', 'created_at', 'updated_at',"slug",'description')
+
     list_filter = ('category',)
 
 

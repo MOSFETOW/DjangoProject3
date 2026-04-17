@@ -1,7 +1,7 @@
 
 from django.shortcuts import render
 from .models import Product,Category
-from django.shortcuts import render
+from django.shortcuts import render,get_object_or_404
 
 def home(request):
     products = Product.objects.all()
@@ -16,19 +16,31 @@ def home(request):
     return render(request, "page.html", context)
 
 
-def page1(request):
+def products_by_category(request, slug):
+    categories = Category.objects.all()
+    category = get_object_or_404(Category, slug=slug)
+    products = Product.objects.filter(category=category)
     context = {
-        "title": "Сторінка 1",
-        "content": "Це перша сторінка",
-        "is_home": False
+        'category': category,
+        'products': products,
+        'categories': categories,
     }
-    return render(request, "page.html", context)
+    return render(request, 'categories.html', context)
 
 
-def page2(request):
-    context = {
-        "title": "Сторінка 2",
-        "content": "Це друга сторінка",
-        "is_home": False
+
+def product_detail(request, category_slug, product_slug):
+    categories = Category.objects.all()
+    category = get_object_or_404(Category, slug=category_slug)
+    product = get_object_or_404(Product, slug=product_slug, category=category)
+    products = Product.objects.filter(category=category)
+    context={
+        'product': product,
+        'category': category,
+        'products': products,
+        'categories': categories
     }
-    return render(request, "page.html", context)
+    return render(request, 'product_detail.html', context)
+
+
+
