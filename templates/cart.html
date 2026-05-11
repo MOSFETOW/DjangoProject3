@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+
+<div class="container py-5">
+    <div id="cart-main-section" class="row">
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4">
+                <div class="card-header bg-white py-3">
+                    <h5 class="mb-0 fw-bold">Ваш кошик</h5>
+                </div>
+                <div class="card-body">
+                    {% if items %}
+                    <form id="cart-form" method="POST" action="checkout">
+                        {% csrf_token %}
+                        <div class="table-responsive">
+                            <table class="table align-middle">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th scope="col" class="border-0">Обрати</th>
+                                        <th scope="col" class="border-0">Товар</th>
+                                        <th scope="col" class="border-0">Ціна</th>
+                                        <th scope="col" class="border-0">Кількість</th>
+                                        <th scope="col" class="border-0 text-end">Сума</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in items %}
+                                    <tr class="cart-row"
+                                        data-price="{{ item.product.price }}"
+                                        data-name="{{ item.product.name }}"
+                                        {% if item.product.image %}data-image="{{ item.product.image.url }}"{% else %}data-image=""{% endif %}>
+                                        <td>
+                                            <input type="hidden" name="item_id" value="{{ item.id }}">
+                                            <input type="checkbox" name="selected_id" value="{{ item.id }}" class="item-checkbox" checked>
+                                        </td>
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                {% if item.product.image %}
+                                                    <img src="{{ item.product.image.url }}" class="rounded me-2" style="width: 50px; height: 50px; object-fit: cover;">
+                                                {% endif %}
+                                                <div class="fw-bold">{{ item.product.name }}</div>
+                                            </div>
+                                        </td>
+                                        <td>{{ item.product.price }} грн</td>
+                                        <td>
+                                            <input type="number" name="quantity" value="{{ item.quantity }}"
+                                                   min="1" class="form-control item-quantity text-center shadow-none"
+                                                   style="width: 65px; border-radius: 8px;">
+                                        </td>
+                                        <td class="text-end fw-bold text-primary">
+                                            <span class="item-total-price">{{ item.total_price }} грн</span>
+                                        </td>
+                                        <td class="text-end">
+                                            <a href="{% url 'remove_from_cart' item.id %}" class="btn btn-sm btn-outline-danger border-0 rounded-circle">
+                                                <i class="bi bi-trash3"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </form>
+                    {% else %}
+                    <div class="text-center py-5">
+                        <img src="https://cdn-icons-png.flaticon.com/512/11329/11329060.png" width="100" class="mb-3 opacity-50">
+                        <h5 class="text-muted">Кошик порожній</h5>
+                        <a href="/" class="btn btn-primary mt-3 rounded-pill px-4">Почати покупки</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 sticky-top" style="top: 20px;">
+                <h5 class="fw-bold mb-4">Разом</h5>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <span class="h5 mb-0">До сплати:</span>
+                    <span class="h4 mb-0 text-primary fw-bold"><span id="final-total">0</span> грн</span>
+                </div>
+                <button type="button" onclick="showPaymentStep()" class="btn btn-success btn-lg w-100 rounded-3 py-3 fw-bold">
+                    Оформити покупку
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="payment-section" class="row justify-content-center d-none">
+        <div class="col-md-7">
+            <div class="card border-0 shadow-lg rounded-4 overflow-hidden">
+                <div class="card-header bg-primary text-white py-3 text-center">
+                    <h4 class="mb-0 fw-bold">Оформлення замовлення</h4>
+                </div>
+                <div class="card-body p-4">
+
+                    <div id="receipt-items" class="mb-4">
+                        <h6 class="fw-bold border-bottom pb-2">Ваше замовлення:</h6>
+                        <table class="table table-sm table-borderless">
+                            <tbody id="items-list-body">
+                                </tbody>
+                        </table>
+                    </div>
+
+                    <div class="row align-items-center mb-4 border-bottom pb-4">
+                        <div class="col-sm-6 text-center">
+                            <p class="small text-muted mb-2">Відскануйте для оплати</p>
+                            <img src="https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=https://kanc.ua/pay" class="img-fluid rounded shadow-sm">
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="bg-light p-3 rounded-3 text-center text-sm-start">
+                                <p class="mb-1 small">Сума до сплати:</p>
+                                <h3 class="text-primary fw-bold mb-0"><span id="payment-total">0</span> грн</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="user-contact" class="form-label fw-bold small">Контактні дані:</label>
+                        <input type="text" class="form-control shadow-none" id="user-contact" placeholder="Телефон або Email" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="delivery-method" class="form-label fw-bold small">Спосіб доставки:</label>
+                        <select class="form-select shadow-none" id="delivery-method" required>
+                            <option value="Нова Пошта">Нова Пошта</option>
+                            <option value="Укрпошта">Укрпошта</option>
+                            <option value="Meest">Meest</option>
+                        </select>
+                    </div>
+
+<div class="mb-4">
+    <label for="branch-number" class="form-label fw-bold small">Номер відділення / поштомату:</label>
+    <input type="number" class="form-control shadow-none" id="branch-number" min="1"  required>
+</div>
+
+                    <div class="d-grid gap-2">
+                        <button type="button" onclick="handleFinalBuy()" class="btn btn-success btn-lg rounded-3 py-3 fw-bold">
+                            Підтвердити та купити
+                        </button>
+                        <button type="button" onclick="window.location.reload()" class="btn btn-link text-secondary">Повернутись до кошика</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="buyToast" class="toast align-items-center text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="bi bi-check-circle me-2"></i> Дякуємо! Ваше замовлення прийнято.
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'js/cart.js' %}"></script>
+{% endblock %}

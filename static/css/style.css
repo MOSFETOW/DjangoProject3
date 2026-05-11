@@ -1,0 +1,21 @@
+.rating-area {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+    }
+    .rating-area input {
+        display: none;
+    }
+    .rating-area label {
+        cursor: pointer;
+        font-size: 2rem;
+        color: #dee2e6;
+        padding: 0 4px;
+        transition: color 0.2s;
+    }
+
+    .rating-area input:checked ~ label,
+    .rating-area label:hover,
+    .rating-area label:hover ~ label {
+        color: #ffc107;
+    }
