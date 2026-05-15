@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Особистий кабінет ({{ user.username }})</h2>
+        <div>
+
+
+
+            <a href="{% url 'password_update_send_code' %}" class="btn btn-warning me-2">
+                <i class="bi bi-shield-lock"></i> Змінити пароль
+            </a>
+            <form action="{% url 'logout' %}" method="post" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger">Вийти</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-4 mb-4">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0 fw-bold">{% if is_admin %}Всі замовлення клієнтів{% else %}Мої замовлення{% endif %}</h5>
+        </div>
+        <div class="card-body">
+            {% if orders %}
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Товар</th>
+                            <th>Кількість</th>
+                            <th>Контакти</th>
+                            <th>Доставка</th>
+                            <th>Дата</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td>{{ order.product.name }}</td>
+                            <td>{{ order.quantity }}</td>
+                            <td>{{ order.contact_info }}</td>
+                            <td>{{ order.delivery_method }} (Відд: {{ order.branch_number }})</td>
+                            <td>{{ order.created_at|date:"d.m.Y H:i" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted mb-0">Замовлень не знайдено.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

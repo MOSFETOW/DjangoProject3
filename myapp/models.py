@@ -60,19 +60,20 @@ class CartItem(models.Model):
         return f"{self.product.name} ({self.quantity})"
 
 
-
-
 class Order(models.Model):
-    session_key = models.CharField(max_length=40, db_index=True, verbose_name="Ключ сесії", null=True)
+    user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True,verbose_name="Користувач")
+    session_key = models.CharField(max_length=40, null=True, blank=True)
+
     product = models.ForeignKey(Product, on_delete=models.CASCADE, verbose_name="Товар")
+
     quantity = models.IntegerField(verbose_name="Кількість")
-    contact_info = models.CharField(max_length=150, verbose_name="Контакти (Телефон/Пошта)", null=True, blank=True)
-    delivery_method = models.CharField(max_length=50, verbose_name="Спосіб доставки", null=True, blank=True)
-    branch_number = models.CharField(max_length=100, verbose_name="Номер відділення", null=True, blank=True)
+
+    contact_info = models.CharField(max_length=255, null=True, blank=True,verbose_name="Контакти")
+    delivery_method = models.CharField(max_length=100, null=True, blank=True, verbose_name="Спосіб доставки")
+    branch_number = models.CharField(max_length=50, null=True, blank=True,verbose_name="Номер відділення")
+
     created_at = models.DateTimeField(auto_now_add=True, verbose_name="Створено")
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Оновлено")
 
     def __str__(self):
-        return f"Замовлення: {self.product.name} ({self.quantity} шт.)"
-
-
+        return f"Замовлення {self.id} - {self.product.name}"

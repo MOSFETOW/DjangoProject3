@@ -1,8 +1,110 @@
-
+import random
+import time
+from django.contrib.auth.hashers import make_password
 from django.db.models import Q
 from django.shortcuts import render,redirect
 from .models import Product,Category,CartItem,Rating,MailingList,Order
 from django.shortcuts import render,get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
+from django.core.mail import send_mail
+from django.contrib.auth import login
+from django.conf import settings
+from django.contrib.auth.models import User
+from .forms import CustomUserCreationForm
+from django.contrib.auth import logout as auth_logout
+
+
+@login_required
+def password_update_send_code(request):
+
+    user_email = request.user.email
+    if not user_email:
+        messages.error(request, "До вашого акаунта не прив'язана електронна пошта.")
+        return redirect('profile')
+
+
+    otp = str(random.randint(100000, 999999))
+
+
+    request.session['update_password_otp'] = otp
+    request.session['update_password_otp_expiry'] = time.time() + 600  # 10 хвилин
+
+    send_mail(
+        'Код підтвердження оновлення пароля',
+        f'Ваш тимчасовий код: {otp}. Якщо ви не запитували зміну пароля, ігноруйте цей лист.',
+        settings.EMAIL_HOST_USER,
+        [user_email],
+        fail_silently=False,
+    )
+
+    messages.success(request, f"Код надіслано на {user_email}")
+    return redirect('password_update_verify')
+
+
+@login_required
+def password_update_verify(request):
+
+    if 'update_password_otp' not in request.session:
+        return redirect('password_update_send_code')
+
+    if request.method == 'POST':
+
+        if 'resend' in request.POST:
+            return password_update_send_code(request)
+
+        entered_code = request.POST.get('code')
+        stored_code = request.session.get('update_password_otp')
+        expiry = request.session.get('update_password_otp_expiry', 0)
+
+        if time.time() > expiry:
+            messages.error(request, "Термін дії коду минув. Надішліть новий.")
+        elif entered_code == stored_code:
+            request.session['otp_verified'] = True
+            return redirect('password_update_final')
+        else:
+            messages.error(request, "Невірний код.")
+
+    return render(request, 'registration/password_update_verify.html')
+
+
+@login_required
+def password_update_final(request):
+
+    if not request.session.get('otp_verified'):
+        return redirect('password_update_send_code')
+
+    if request.method == 'POST':
+        new_pass = request.POST.get('password')
+        confirm_pass = request.POST.get('confirm_password')
+
+        if new_pass == confirm_pass:
+            user = request.user
+            user.password = make_password(new_pass)
+            user.save()
+
+
+            keys_to_delete = ['update_password_otp', 'update_password_otp_expiry', 'otp_verified']
+            for key in keys_to_delete:
+                if key in request.session:
+                    del request.session[key]
+
+            messages.success(request, "Пароль успішно змінено. Будь ласка, увійдіть знову.")
+            return custom_logout(request)
+        else:
+            messages.error(request, "Паролі не збігаються.")
+
+    return render(request, 'registration/password_update_final.html')
+
+
+def custom_logout(request):
+
+    auth_logout(request)
+
+    return redirect('home')
+
+
+
 
 
 def checkout_page(request):
@@ -14,29 +116,22 @@ def checkout_page(request):
         selected_ids = request.POST.getlist('selected_id')
         item_ids = request.POST.getlist('item_id')
         quantities = request.POST.getlist('quantity')
-
-
         contact_info = request.POST.get('contact_info')
         delivery_method = request.POST.get('delivery_method')
         branch_number = request.POST.get('branch_number')
 
-        for i in range(len(item_ids)):
-            item_id = item_ids[i]
-            quantity = quantities[i]
-
-            cart_map = dict(zip(item_ids, quantities))
-
+        cart_map = dict(zip(item_ids, quantities))
 
         for c_id, q_val in cart_map.items():
             CartItem.objects.filter(id=c_id, session_key=s_key).update(quantity=q_val)
 
         items_to_order = CartItem.objects.filter(id__in=selected_ids, session_key=s_key)
 
-
         if items_to_order.exists():
             for item in items_to_order:
 
                 Order.objects.create(
+                    user=request.user if request.user.is_authenticated else None,
                     session_key=s_key,
                     product=item.product,
                     quantity=item.quantity,
@@ -44,13 +139,46 @@ def checkout_page(request):
                     delivery_method=delivery_method,
                     branch_number=branch_number
                 )
-
-
             items_to_order.delete()
-
             return redirect("home")
-
     return redirect("cart")
+
+
+# Нові функції
+def register_view(request):
+    if request.user.is_authenticated:
+        return redirect('home')
+
+    if request.method == 'POST':
+        form = CustomUserCreationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user)
+            return redirect('home')
+    else:
+        form = CustomUserCreationForm()
+
+    categories = Category.objects.all()
+    return render(request, 'registration/register.html', {'form': form, 'categories': categories})
+
+
+@login_required
+def profile_view(request):
+    categories = Category.objects.all()
+
+    if request.user.is_staff or request.user.is_superuser:
+        orders = Order.objects.all().order_by('-created_at')
+        is_admin = True
+    else:
+
+        orders = Order.objects.filter(user=request.user).order_by('-created_at')
+        is_admin = False
+    print(orders)
+    return render(request, 'registration/profile.html', {
+        'orders': orders,
+        'is_admin': is_admin,
+        'categories': categories
+    })
 
 
 
@@ -143,7 +271,7 @@ def product_detail(request, category_slug, product_slug):
     return render(request, 'product_detail.html', context)
 
 
-
+# Нова функція для обробки оцінки
 def rate_product(request, slug):
     if request.method == 'POST':
         score = request.POST.get('score')
@@ -192,7 +320,7 @@ def add_to_cart(request,slug):
 
 
 def remove_from_cart(request, slug):
-
+    """Видаляє запис про товар з кошика (з таблиці CartItem)"""
     s_key = get_session_key(request)
 
     cart_item = get_object_or_404(CartItem, id=slug, session_key=s_key)
@@ -244,17 +372,3 @@ def products_by_category(request, slug):
 
 
 
-
-#def product_detail(request, category_slug, product_slug):
-    #   categories = Category.objects.all()
-    #  category = get_object_or_404(Category, slug=category_slug)
-    #  product = get_object_or_404(Product, slug=product_slug, category=category)
-    #  products = Product.objects.filter(category=category)
-    #   context={
-    #      'product': product,
-    #      'category': category,
-    #     'products': products,
-    #     'categories': categories
-    # }
-# return render(request, 'product_detail.html', context)
-#
